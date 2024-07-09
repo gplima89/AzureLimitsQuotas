@@ -54,3 +54,10 @@ Install Module AZ.ResourceGraph (Powershell 7.2)
 10- Select the previously created schedule and save
 
 ![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/6e01f347-3ca8-48d7-b0d1-5b6b7fd64ed8)
+
+# Expected Results
+![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/020e562d-3cf3-4b3a-bf33-6673340d2ad2)
+
+# Next Steps
+Setup Alerts based on a sheduled query in the Log Analytics Workspace Custom Table that was created, and searching for "PercentageUsed" over 80%
+Create action groups accorting to your need
