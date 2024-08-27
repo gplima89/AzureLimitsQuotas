@@ -16,11 +16,22 @@ Install Module AZ.ResourceGraph (Powershell 7.2)<br />
 
 ![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/1616ba61-a687-439e-822e-5ed22ed0ce72)
 
+# Creating App Registration
+1- From the Azure Portal, access Entra ID<br />
+2- Click on App Registrations<br />
+3- Click on New registration<br />
+4- Add the App Name<br />
+5- Click on Register<br />
+6- Once the App is created, click on "Certificate & Secrets"<br />
+7- Click on "New client secret"<br />
+8- Add a name for the secret and click on "Add"<br />
+9- Once created, copy the secret value (It will be used for the PWord variable later)<br />
+
 # Creating variables
 1- In your Automation Account, click on "Shared Resources" > "Variables"<br />
 2- Click on Add variable<br />
 3- In the name, add "AppId", in the value include the AppID and change the switch to encrypt the value<br />
-4- Repeat the steps for following variables: "CustomerId", "PWord", "SharedKey", "TenantId" (Encryption optional)<br />
+4- Repeat the steps for following variables: "CustomerId" (LAW - Agents - Workspace ID), "SharedKey" (LAW - Agents - Primary Key), AppID (App ID for the Custom App created on Entra), "PWord" (,Secret created for the App), "TenantId" (In the top search bar, search for Tenant properties, and copy the Tenant ID)(Encryption optional)<br />
 
 # Setting permission to the System Signed Identity
 1- In your automation account, go to "Account Settings" > "Identity"<br />
