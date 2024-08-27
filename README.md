@@ -31,7 +31,7 @@ Install Module AZ.ResourceGraph (Powershell 7.2)<br />
 1- In your Automation Account, click on "Shared Resources" > "Variables"<br />
 2- Click on Add variable<br />
 3- In the name, add "AppId", in the value include the AppID and change the switch to encrypt the value<br />
-4- Repeat the steps for following variables: "CustomerId" (LAW - Agents - Workspace ID), "SharedKey" (LAW - Agents - Primary Key), AppID (App ID for the Custom App created on Entra), "PWord" (,Secret created for the App), "TenantId" (In the top search bar, search for Tenant properties, and copy the Tenant ID)(Encryption optional)<br />
+4- Repeat the steps for following variables: "CustomerId" (LAW - Agents - Workspace ID), "SharedKey" (LAW - Agents - Primary Key), AppID (App ID for the Custom App created on Entra), "PWord" (Secret created for the App), "TenantId" (In the top search bar, search for Tenant properties, and copy the Tenant ID)(Encryption optional)<br />
 
 # Setting permission to the System Signed Identity
 1- In your automation account, go to "Account Settings" > "Identity"<br />
