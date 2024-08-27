@@ -27,6 +27,15 @@ Install Module AZ.ResourceGraph (Powershell 7.2)<br />
 8- Add a name for the secret and click on "Add"<br />
 9- Once created, copy the secret value (It will be used for the PWord variable later)<br />
 
+# Set App Permissions on LAW
+1- Access the Log Analytics Workspace that will store the data<br />
+2- Clicl on Access Control (IAM)<br />
+3- Click on "Add" - "Role assignment"<br />
+4- Click on "Reader" - "Next"<br />
+5- Click on "+ Select members" and search for the App Registration Name (It will not show it without searching for it), and click on "Select"<br />
+6- Click on "Next"<br />
+7- Click on "Review + assign"<br />
+
 # Creating variables
 1- In your Automation Account, click on "Shared Resources" > "Variables"<br />
 2- Click on Add variable<br />
