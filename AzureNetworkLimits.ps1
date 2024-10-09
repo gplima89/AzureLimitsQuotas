@@ -26,7 +26,7 @@ $SubQuery = 'ResourceContainers
             | where type == "microsoft.resources/subscriptions"
             | project SubscriptionName = name, SubscriptionId = id, State = properties.state
             | where State == "Enabled"'
-$Subscriptions = Search-AzGraph -Query $SubQuery -UseTenantScope
+$Subscriptions = Search-AzGraph -Query $SubQuery -first 1000 -UseTenantScope
 
 # Create the function to create the authorization signature
 Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)
