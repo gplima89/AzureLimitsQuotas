@@ -21,7 +21,12 @@ catch {
 }
 
 # Collecting the list of subscriptions
-$Subscriptions = Get-AzSubscription
+#Subscriptions = Get-AzSubscription
+$SubQuery = 'ResourceContainers
+            | where type == "microsoft.resources/subscriptions"
+            | project SubscriptionName = name, SubscriptionId = id, State = properties.state
+            | where State == "Enabled"'
+$Subscriptions = Search-AzGraph -Query $SubQuery -UseTenantScope
 
 # Create the function to create the authorization signature
 Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)
@@ -70,8 +75,8 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType)
 # Network Limits Limit
 foreach ($subscription in $Subscriptions)
 {
-    $null = Set-AzContext -Subscription $subscription.Id
-
+    $null = Set-AzContext -Subscription $Subscription.subscriptionid.split('/')[2]
+ 
     foreach ($location in $locations.split(","))
     {
         $nwQuotas = Get-AzNetworkUsage -Location $location
