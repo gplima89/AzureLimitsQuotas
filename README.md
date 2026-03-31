@@ -1,83 +1,146 @@
-# AzureLimitsQuotas
+# Azure Limits & Quotas Export
 
-# Prerequisites
+PowerShell script that collects Azure resource quotas and network usage/limits across all enabled subscriptions (or a single one) and exports the results to an Excel file with separate worksheets.
 
-# Including required modules
-Install Module AZ.ResourceGraph (Powershell 7.2)<br />
-1- Access the automation account <br />
-2- Go to Shared Resources > Modules<br />
-3- Click on "Add Module"<br />
-4- Select "Browse from Galery"<br />
-5- Click on "Click here to browse from gallery"<br />
-6- Search for "Az.ResourceGraph"<br />
-7- Click on the module, and click on "Select"<br />
-8- Select the runtime Version "7.2"<br />
-9- Click on Import<br />
+## How It Works
 
-![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/1616ba61-a687-439e-822e-5ed22ed0ce72)
+The script uses `Invoke-AzRestMethod` to call the Azure REST API directly for each subscription and location — **no context switching required**, making it efficient for tenants with hundreds of subscriptions.
 
-# Creating App Registration
-1- From the Azure Portal, access Entra ID<br />
-2- Click on App Registrations<br />
-3- Click on New registration<br />
-4- Add the App Name<br />
-5- Click on Register<br />
-6- Once the App is created, click on "Certificate & Secrets"<br />
-7- Click on "New client secret"<br />
-8- Add a name for the secret and click on "Add"<br />
-9- Once created, copy the secret value (It will be used for the PWord variable later)<br />
+It queries the `/locations/{location}/usages` endpoint for each configured provider and collects all resources where current usage is greater than zero. Results are split into two worksheets:
 
-# Set App Permissions on LAW
-1- Access the Log Analytics Workspace that will store the data<br />
-2- Clicl on Access Control (IAM)<br />
-3- Click on "Add" - "Role assignment"<br />
-4- Click on "Reader" - "Next"<br />
-5- Click on "+ Select members" and search for the App Registration Name (It will not show it without searching for it), and click on "Select"<br />
-6- Click on "Next"<br />
-7- Click on "Review + assign"<br />
+| Worksheet | Description |
+|---|---|
+| **ResourceQuotas** | Compute, Storage, and other provider quotas |
+| **NetworkLimits** | Network-specific usage and limits |
 
-# Creating variables
-1- In your Automation Account, click on "Shared Resources" > "Variables"<br />
-2- Click on Add variable<br />
-3- In the name, add "AppId", in the value include the AppID and change the switch to encrypt the value<br />
-4- Repeat the steps for following variables: "CustomerId" (LAW - Agents - Workspace ID), "SharedKey" (LAW - Agents - Primary Key), AppID (App ID for the Custom App created on Entra), "PWord" (Secret created for the App), "TenantId" (In the top search bar, search for Tenant properties, and copy the Tenant ID)(Encryption optional)<br />
+## Prerequisites
 
-# Setting permission to the System Signed Identity
-1- In your automation account, go to "Account Settings" > "Identity"<br />
-2- Click on "Azure Role Assignments"<br />
-3- Click On "Add Role Assignment"<br />
-4- Select the subscription in the scope<br />
-5- Select the Reader Role and click "Save"<br />
+### PowerShell Modules
 
-# Deploying the code
+Install the following modules before running the script:
 
-# Create the runbook
-1- In your automation account, go to "Process Automation" > "Runbooks"<br />
-2- Click on "Create a runbook"<br />
-4- Add a name, Select "PowerShell" from "Runbook Type", select "7.2" in the "Runtime version", and click on "Review + Create" > "Create"<br />
-5- In the runbook once created, click on "Edit" > "Edit in Portal"<br />
-6- Paste the code in the edit panel<br />
-7- Save the code<br />
-8- Go to Test Pane, and start a test<br />
-9- If the code returns "200" in the output, click on "Publish" to publish the code<br />
+```powershell
+Install-Module Az.Accounts -Scope CurrentUser
+Install-Module Az.ResourceGraph -Scope CurrentUser
+Install-Module ImportExcel -Scope CurrentUser
+```
 
-# Creating schedule for the code
-1- In your automation account, click on "Shared Resources" > "Schedules"<br />
-2- Click on "Add a Schedule"<br />
-3- Add a Name, select the start date and time and change the recurency to "Recurring"<br />
-4- Change the recurrency to "1 Day" and set expiration to "Never"<br />
-5- Click on "Create"<br />
-6- Go to your Runbook: In your automation account, go to "Process Automation" > "Runbooks" > Click on your runbook<br />
-7- Click on "Resources" > "Schedule"<br />
-8- Click on "Add Schedule"<br />
-9- Click on "Schedule"<br />
-10- Select the previously created schedule and save<br />
+| Module | Purpose |
+|---|---|
+| `Az.Accounts` | Azure authentication and `Invoke-AzRestMethod` |
+| `Az.ResourceGraph` | Enumerate enabled subscriptions across the tenant |
+| `ImportExcel` | Export results to `.xlsx` without requiring Excel installed |
 
-![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/6e01f347-3ca8-48d7-b0d1-5b6b7fd64ed8)
+### Azure Permissions
 
-# Expected Results
-![image](https://github.com/gplima89/AzureLimitsQuotas/assets/108761690/020e562d-3cf3-4b3a-bf33-6673340d2ad2)
+- **Reader** role (or equivalent) on the target subscriptions to query usage/quota APIs.
+- Access to Azure Resource Graph to enumerate subscriptions (unless using `-SubscriptionId`).
 
-# Next Steps
-Setup Alerts based on a sheduled query in the Log Analytics Workspace Custom Table that was created, and searching for "PercentageUsed" over 80%<br />
-Create action groups accorting to your need
+### Authentication
+
+Connect to Azure before running the script:
+
+```powershell
+Connect-AzAccount
+```
+
+The script will detect if you're not connected and attempt an interactive login automatically.
+
+## Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `-Locations` | String | No | `canadacentral,canadaeast,eastus2,centralus` | Comma-separated list of Azure regions to query |
+| `-OutputPath` | String | No | `AzureLimitsAndQuotas_<timestamp>.xlsx` | Path for the output Excel file |
+| `-SubscriptionId` | String | No | *(all enabled subs)* | Single subscription ID (GUID) to query |
+| `-QuotaProviders` | String[] | No | `Microsoft.Compute, Microsoft.Network, Microsoft.Storage` | Resource providers to query for usage/quotas |
+
+## Usage Examples
+
+### Query all subscriptions (default locations)
+
+```powershell
+.\AzureNetworkLimitsToCSV.ps1
+```
+
+### Query a single subscription
+
+```powershell
+.\AzureNetworkLimitsToCSV.ps1 -SubscriptionId "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+### Custom locations and output path
+
+```powershell
+.\AzureNetworkLimitsToCSV.ps1 -Locations "eastus,westus2,westeurope" -OutputPath "C:\Reports\QuotaReport.xlsx"
+```
+
+### Query only Compute and Network providers
+
+```powershell
+.\AzureNetworkLimitsToCSV.ps1 -QuotaProviders @('Microsoft.Compute', 'Microsoft.Network')
+```
+
+## Expected Output
+
+The script generates an `.xlsx` file with two worksheets:
+
+### ResourceQuotas Worksheet
+
+| Column | Description |
+|---|---|
+| Timestamp | Date/time of collection |
+| Provider | Azure resource provider (e.g., `Microsoft.Compute`) |
+| Location | Azure region |
+| QuotaName | Internal quota/resource name |
+| LocalizedName | Human-readable quota name |
+| LimitValue | Maximum allowed quota |
+| CurrentValue | Current usage |
+| PercentageUsed | Usage as a percentage of the limit |
+| Unit | Unit of measurement |
+| SubscriptionId | Subscription GUID |
+| SubscriptionName | Subscription display name |
+
+### NetworkLimits Worksheet
+
+Same columns as above, filtered to `Microsoft.Network` provider results.
+
+### Console Output
+
+The script displays progress as it runs:
+
+```
+Connected to Azure as: user@domain.com | Tenant: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+Locations to query: canadacentral, canadaeast, eastus2, centralus
+Found 42 enabled subscription(s).
+
+Collecting resource quotas and network limits per subscription (via REST, no context switching)...
+[1/42] Processing subscription: MySubscription (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+[2/42] Processing subscription: AnotherSub (yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy)
+...
+
+Collection complete: 350 quota record(s), 120 network limit record(s).
+Exported 350 resource quota record(s) to worksheet 'ResourceQuotas'.
+Exported 120 network limit record(s) to worksheet 'NetworkLimits'.
+
+Output file: C:\path\to\AzureLimitsAndQuotas_20260331_143022.xlsx
+```
+
+## Supported Providers
+
+The default providers queried are listed below. You can add others that support the standard `/locations/{location}/usages` REST endpoint.
+
+| Provider | API Version | Resources Tracked |
+|---|---|---|
+| `Microsoft.Compute` | 2024-07-01 | VM cores, availability sets, managed disks, etc. |
+| `Microsoft.Network` | 2024-01-01 | Virtual networks, NICs, NSGs, load balancers, public IPs, etc. |
+| `Microsoft.Storage` | 2023-05-01 | Storage accounts |
+
+## Legacy Scripts
+
+The original automation-account-based scripts that stream data to Log Analytics Workspace are preserved:
+
+- `AzureLimits.ps1` — Collects quotas via Resource Graph and network limits, posts to LAW
+- `AzureNetworkLimits.ps1` — Collects network limits across subscriptions, posts to LAW
+
+See [oldreadme.md](oldreadme.md) for setup instructions for the legacy scripts.
